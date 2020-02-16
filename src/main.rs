@@ -9,9 +9,11 @@ use cli::run_main;
 mod github;
 use rood::cli::OutputManager;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() {
     let app = App::new("binman")
-        .version("v0.1.0")
+        .version(VERSION)
         .author("Purposed")
         .about("Binary Package Manager")
         .setting(AppSettings::ArgRequiredElseHelp)
