@@ -37,10 +37,12 @@ pub fn update_target(target: &str, output: &OutputManager) -> BinmanResult<()> {
     {
         // Get read scope on state.
         let state = State::new(&cfg.state_file_path)?;
-        entry = state.get_copy(target).ok_or(BinmanError::new(
-            Cause::NotFound,
-            &format!("Binary {} is not installed", target),
-        ))?;
+        entry = state.get_copy(target).ok_or_else(|| {
+            BinmanError::new(
+                Cause::NotFound,
+                &format!("Binary {} is not installed", target),
+            )
+        })?;
     }
 
     let possible_new_entry =

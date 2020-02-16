@@ -10,9 +10,9 @@ pub fn parse_version_fuzzy(version: &str) -> BinmanResult<Version> {
     match Version::parse(version) {
         Ok(v) => Ok(v),
         Err(e) => {
-            if version.starts_with("v") {
-                Ok(Version::parse(trim_first_char(version).ok_or(
-                    BinmanError::new(Cause::InvalidVersion, "Could not trim version string"),
+            if version.starts_with('v') {
+                Ok(Version::parse(trim_first_char(version).ok_or_else(
+                    || BinmanError::new(Cause::InvalidVersion, "Could not trim version string"),
                 )?)?)
             } else {
                 Err(BinmanError::from(e))

@@ -21,10 +21,9 @@ impl Release {
     pub fn platform_assets(&self) -> Vec<&Asset> {
         // TODO: Actually check architecture along with platform.
         let cur_platform = Platform::detect();
-        return self
-            .assets
+        self.assets
             .iter()
             .filter(|asset| asset.platform() == cur_platform)
-            .collect();
+            .collect()
     }
 }

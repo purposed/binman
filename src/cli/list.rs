@@ -6,9 +6,11 @@ use crate::binman::{Config, State, StateEntry};
 use crate::error::BinmanError;
 
 fn display_entry(output: &OutputManager, entry: &StateEntry) {
-    output.step(&format!("{}@{}", &entry.name, &entry.version), 0);
+    output.step(&format!("{}@{}", &entry.name, &entry.version));
+
+    let pushed = output.push();
     for artifact in entry.artifacts.iter() {
-        output.debug(&artifact, 1);
+        pushed.debug(&artifact);
     }
 }
 

@@ -15,12 +15,12 @@ pub fn uninstall(matches: &ArgMatches) -> BinmanResult<()> {
         if let Err(e) = &v {
             if e.cause == Cause::NotFound {
                 // Target was not installed.
-                output.success(&e.message, 0);
+                output.success(&e.message);
             } else {
                 return v;
             }
         }
     }
-    output.success("Uninstallation Successful", 0);
+    output.success("Uninstallation Successful");
     Ok(())
 }

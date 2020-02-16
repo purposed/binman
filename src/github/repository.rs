@@ -25,7 +25,7 @@ impl Repository {
     }
 
     pub fn from_url(url: &str) -> BinmanResult<Repository> {
-        let splitted: Vec<&str> = url.split("/").collect();
+        let splitted: Vec<&str> = url.split('/').collect();
         if splitted.len() < 2 {
             return Err(BinmanError::new(
                 Cause::InvalidData,

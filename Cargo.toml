@@ -10,7 +10,7 @@ edition = "2018"
 clap = "2.33.0"
 dirs = "2.0.2"
 http = "0.2.0"
-rood = "0.1.0"
+rood = "0.1.1"
 reqwest = { version = "0.10", features = ["json"]}
 semver = { version = "0.9.0", features = ["serde"] }
 serde = { version = "1.0.104", features = ["derive"] }
