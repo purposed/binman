@@ -11,20 +11,26 @@ use tempfile::tempdir;
 use tokio::runtime::Runtime;
 
 use super::fuzzy_semver::parse_version_fuzzy;
+use super::zip;
 use super::{Config, State, StateEntry};
 use crate::error::{BinmanError, BinmanResult, Cause};
 use crate::github::{Asset, Client, Repository};
 use rood::sys::file::ensure_exists;
 use std::ffi::OsStr;
 
-async fn save_asset(asset: &Asset, install_location: &Path) -> BinmanResult<String> {
+async fn save_asset(
+    asset: &Asset,
+    install_location: &Path,
+    output: OutputManager,
+) -> BinmanResult<()> {
     let mut asset_dest_path = install_location.join(&format!(
         "{}-{}-{}",
         asset.name(),
         asset.platform(),
         asset.architecture()
     ));
-    asset_dest_path.set_extension(asset.extension());
+    let extension = asset.extension();
+    asset_dest_path.set_extension(extension);
 
     // Download the file
     let resp = reqwest::get(&asset.browser_download_url).await?;
@@ -33,9 +39,14 @@ async fn save_asset(asset: &Asset, install_location: &Path) -> BinmanResult<Stri
     let mut dest = File::create(&asset_dest_path)?;
     dest.write_all(body)?;
 
-    // Mark executable.
-    file::make_executable(&asset_dest_path)?;
-    Ok(String::from(asset_dest_path.to_str().unwrap()))
+    // Extract, if required.
+    if extension == "zip" {
+        output.progress("Inflating compressed release");
+        zip::unzip(&asset_dest_path, install_location)?;
+        fs::remove_file(&asset_dest_path)?;
+    }
+
+    Ok(())
 }
 
 fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
@@ -103,8 +114,9 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> BinmanR
         final_file_name.set_extension(entry.path().extension().unwrap_or(&OsStr::new("")));
         let dst_entry = dst_dir.join(&final_file_name);
 
-        output.progress(&format!("Asset: {}", dst_entry.to_str().unwrap()));
+        output.progress(&format!("Produced asset: {}", dst_entry.to_str().unwrap()));
         fs::rename(entry.path(), &dst_entry)?;
+        file::make_executable(&dst_entry)?;
         final_assets.push(String::from(dst_entry.to_str().unwrap()));
     }
 
@@ -137,7 +149,7 @@ pub async fn async_install(
     if let Some(release) = maybe_release {
         let assets = release.platform_assets();
         for asset in assets.iter() {
-            save_asset(asset, temp_dir.path()).await?;
+            save_asset(asset, temp_dir.path(), output.push()).await?;
         }
 
         let asset_paths = move_assets(temp_dir.path(), Path::new(install_location), output.push())?;

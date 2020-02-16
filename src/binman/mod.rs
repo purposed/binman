@@ -4,6 +4,7 @@ mod install;
 mod state;
 mod uninstall;
 mod update;
+mod zip;
 
 pub use config::Config;
 pub use install::install_target;
