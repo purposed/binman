@@ -9,22 +9,41 @@ pub struct Asset {
 }
 
 impl Asset {
+    fn strip_extension(&self) -> &str {
+        self.name.split('.').next().unwrap()
+    }
+
+    pub fn extension(&self) -> &str {
+        if !self.name.contains('.') {
+            return "";
+        }
+        match self.name.split('.').last() {
+            Some(v) => v,
+            None => "",
+        }
+    }
+
     pub fn name(&self) -> &str {
-        match self.name.split('-').next() {
+        match self.strip_extension().split('-').next() {
             Some(name) => name,
             None => "unknown_artifact",
         }
     }
 
     pub fn architecture(&self) -> Architecture {
-        match self.name.split('-').last() {
+        match self.strip_extension().split('-').last() {
             Some(v) => Architecture::from(v),
             None => Architecture::Unknown,
         }
     }
 
     pub fn platform(&self) -> Platform {
-        match self.name.split('-').collect::<Vec<&str>>().get(1) {
+        match self
+            .strip_extension()
+            .split('-')
+            .collect::<Vec<&str>>()
+            .get(1)
+        {
             Some(v) => Platform::from(*v),
             None => Platform::Unknown,
         }
