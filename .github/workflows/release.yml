@@ -18,7 +18,7 @@ jobs:
           override: true
       - name: Bootstrap Landlord
         run: |
-          sudo wget https://github.com/purposed/landlord/releases/v0.1.5/download/landlord-linux-amd64 -O /usr/local/bin/landlord
+          sudo wget https://github.com/purposed/landlord/releases/download/v0.1.5/landlord-linux-amd64 -O /usr/local/bin/landlord
           sudo chmod +x /usr/local/bin/landlord
       - name: Landlord Release
         run: |
