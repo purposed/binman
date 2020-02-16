@@ -11,10 +11,11 @@ pub fn uninstall_target(target_name: &str, output: &OutputManager) -> BinmanResu
 
     match state.get_copy(target_name) {
         Some(entry) => {
-            output.step(&format!("Uninstalling [{}]", target_name), 0);
+            output.step(&format!("Uninstalling [{}]", target_name));
 
+            let pushed = output.push();
             for artifact in entry.artifacts.iter() {
-                output.debug(&format!("Removing {}", artifact), 1);
+                pushed.debug(&format!("Removing {}", artifact));
                 fs::remove_file(artifact)?;
             }
             // Commit uninstall to state.

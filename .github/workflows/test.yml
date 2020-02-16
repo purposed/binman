@@ -1,0 +1,28 @@
+name: Test
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "v*"
+
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Bootstrap Landlord
+        run: |
+          sudo wget https://github.com/purposed/landlord/releases/latest/download/landlord-linux-amd64 -O /usr/local/bin/landlord
+          sudo chmod +x /usr/local/bin/landlord
+      - name: Validate
+        run: |
+          landlord validate --mode release
+          landlord validate --mode debug

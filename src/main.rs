@@ -86,6 +86,6 @@ fn main() {
     let root_om = OutputManager::new(false);
     match run_main(app.get_matches()) {
         Ok(_) => {}
-        Err(e) => root_om.error(&format!("{}", e), 0),
+        Err(e) => root_om.error(&format!("{}", e)),
     }
 }

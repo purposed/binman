@@ -13,7 +13,7 @@ pub fn update(matches: &ArgMatches) -> BinmanResult<()> {
         update_target(target, &output)?;
     }
 
-    output.success("Update Complete", 0);
+    output.success("Update Complete");
 
     Ok(())
 }
