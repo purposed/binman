@@ -70,13 +70,13 @@ impl Config {
         Ok(cfg)
     }
 
-    fn to_abs(&mut self) {
+    fn ensure_abs(&mut self) {
         self.install_location = tilde(&self.install_location).to_string();
         self.default_code_host = tilde(&self.default_code_host).to_string();
     }
 
     pub fn save(&mut self) -> BinmanResult<()> {
-        self.to_abs();
+        self.ensure_abs();
         let config_path = Config::config_file_path()?;
         let file_handle = fs::File::create(config_path)?;
         serde_json::to_writer(BufWriter::new(file_handle), &self)?;

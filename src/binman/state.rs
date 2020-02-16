@@ -41,7 +41,7 @@ impl State {
             return Err(BinmanError::new(Cause::LockError, "Lock already acquired"));
         }
         let mut file_handle = fs::File::create(lock_path)?;
-        file_handle.write_all("lock".as_bytes())?;
+        file_handle.write_all(b"lock")?;
         Ok(())
     }
 

@@ -53,17 +53,16 @@ pub async fn async_install(
     let repo = client.get_repository(repo_url)?;
     output.step(&format!("Installing [{}]", &repo.name));
 
-    let maybe_release;
-    if version == "latest" {
-        maybe_release = Some(client.latest_release(&repo).await?);
+    let maybe_release = if version == "latest" {
+        Some(client.latest_release(&repo).await?)
     } else {
         let releases = client.get_releases(&repo).await?;
         let semv = parse_version_fuzzy(version)?;
-        maybe_release = releases
+        releases
             .iter()
             .find(|release| release.version().is_ok() && release.version().unwrap() == semv)
-            .cloned();
-    }
+            .cloned()
+    };
 
     if let Some(release) = maybe_release {
         let assets = release.platform_assets();
@@ -87,10 +86,10 @@ pub async fn async_install(
             artifacts: asset_paths,
         })
     } else {
-        return Err(BinmanError::new(
+        Err(BinmanError::new(
             Cause::NotFound,
             &format!("Version {} not found", version),
-        ));
+        ))
     }
 }
 
@@ -100,7 +99,7 @@ pub fn install_target(repo_url: &str, version: &str, output: &OutputManager) -> 
 
     let mut used_url = String::from(repo_url);
 
-    if !used_url.contains("/") {
+    if !used_url.contains('/') {
         output.debug("URL not recognized - using default code host");
         used_url = vec![cfg.default_code_host.clone(), String::from(repo_url)].join("/");
     }
