@@ -43,6 +43,13 @@ fn main() {
                         .help("The version to install."),
                 )
                 .arg(
+                    Arg::with_name("dir")
+                    .long("--dir")
+                    .required(false)
+                    .value_name("INSTALL_DIR")
+                    .help("The installation directory (overrides config.json)")
+                )
+                .arg(
                     Arg::with_name("verbose")
                         .short("v")
                         .long("verbose")
