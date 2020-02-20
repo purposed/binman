@@ -129,6 +129,10 @@ pub async fn async_install(
     install_location: &str,
     output: &OutputManager,
 ) -> BinmanResult<StateEntry> {
+    // Ensure install directory exists.
+    fs::create_dir_all(install_location)?;
+
+    // Create temp dir for asset retrieval.
     let temp_dir = tempdir()?;
 
     let client = Client::new()?;
@@ -168,7 +172,7 @@ pub async fn async_install(
     }
 }
 
-pub fn install_target(repo_url: &str, version: &str, output: &OutputManager) -> BinmanResult<()> {
+pub fn install_target(repo_url: &str, version: &str, output: &OutputManager, optional_dir_override: Option<&str>) -> BinmanResult<()> {
     let cfg = Config::new()?;
     let mut state = State::new(&cfg.state_file_path)?;
 
@@ -187,11 +191,17 @@ pub fn install_target(repo_url: &str, version: &str, output: &OutputManager) -> 
             &format!("Target [{}] is already installed", t.name),
         )),
         None => {
+            let install_dir = if let Some(overr) = optional_dir_override {
+                overr
+            } else {
+                &cfg.install_location
+            };
+
             // TODO: Reuse runtime for multiple targets somehow.
             let new_entry = Runtime::new()?.block_on(async_install(
                 &used_url,
                 version,
-                &cfg.install_location,
+                install_dir,
                 output,
             ))?;
 
