@@ -5,6 +5,8 @@ use crate::error::{BinmanError, BinmanResult, Cause};
 
 #[cfg(target_family = "unix")]
 fn unzip_unix(zip_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
+    // TODO: Validate that unzip is installed.
+    // This throws a bad error.
     let mut child = Command::new("unzip")
         .arg(zip_file.to_str().unwrap())
         .arg("-d")

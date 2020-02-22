@@ -115,7 +115,7 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> BinmanR
         let dst_entry = dst_dir.join(&final_file_name);
 
         output.progress(&format!("Produced asset: {}", dst_entry.to_str().unwrap()));
-        fs::rename(entry.path(), &dst_entry)?;
+        fs::copy(entry.path(), &dst_entry)?;
         file::make_executable(&dst_entry)?;
         final_assets.push(String::from(dst_entry.to_str().unwrap()));
     }
