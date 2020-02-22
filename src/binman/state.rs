@@ -62,9 +62,12 @@ impl State {
     }
 
     fn refresh(&mut self) -> BinmanResult<()> {
-        let contents = fs::read_to_string(&self.path)?;
-        let internal_data = serde_json::from_str(&contents)?;
-        self.internal_data = internal_data;
+        self.internal_data = HashMap::new();
+        if let Ok(contents) = fs::read_to_string(&self.path) {
+            if let Ok(internal_data) = serde_json::from_str(&contents) {
+                self.internal_data = internal_data;
+            }
+        }
         Ok(())
     }
 
