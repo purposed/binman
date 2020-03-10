@@ -15,7 +15,7 @@ fn parse_architecture(name: &str) -> Architecture {
         }
     }
 
-    return Architecture::Unknown;
+    Architecture::Unknown
 }
 
 fn parse_platform(name: &str) -> Platform {
@@ -27,7 +27,7 @@ fn parse_platform(name: &str) -> Platform {
             return plat.clone();
         }
     }
-    return Platform::Unknown;
+    Platform::Unknown
 }
 
 #[derive(Clone, Debug, Deserialize)]
