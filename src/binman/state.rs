@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{BufWriter, Write};
 use std::ops::Add;
@@ -83,7 +83,7 @@ impl State {
         self.internal_data.iter().map(|(_, v)| v).collect()
     }
 
-    pub fn insert(&mut self, entry: StateEntry) -> BinmanResult<()> {
+    pub fn insert(&mut self, mut entry: StateEntry) -> BinmanResult<()> {
         // Will throw if entry already exists.
         if self.internal_data.contains_key(&entry.name) {
             return Err(BinmanError::new(
@@ -92,6 +92,16 @@ impl State {
             ));
         }
 
+        // De-duplicate entry artifacts.
+        let mut v = Vec::new();
+        let mut hsh = HashSet::new();
+        for itm in entry.artifacts.into_iter() {
+            if !hsh.contains(&itm) {
+                hsh.insert(itm.clone());
+                v.push(itm);
+            }
+        }
+        entry.artifacts = v;
         self.internal_data.insert(entry.name.clone(), entry);
         self.save()
     }

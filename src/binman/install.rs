@@ -9,6 +9,7 @@ use rood::sys::file;
 use sha2::{Digest, Sha256};
 use tempfile::tempdir;
 use tokio::runtime::Runtime;
+use walkdir::WalkDir;
 
 use super::fuzzy_semver::parse_version_fuzzy;
 use super::zip;
@@ -40,9 +41,9 @@ async fn save_asset(
     dest.write_all(body)?;
 
     // Extract, if required.
-    if extension == "zip" {
+    if let Some(compression) = zip::get_compression(extension) {
         output.progress("Inflating compressed release");
-        zip::unzip(&asset_dest_path, install_location)?;
+        zip::extract(&asset_dest_path, install_location, compression)?;
         fs::remove_file(&asset_dest_path)?;
     }
 
@@ -90,9 +91,11 @@ fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
 
 fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> BinmanResult<Vec<String>> {
     let mut final_assets = Vec::new();
-    let dir_entries = fs::read_dir(src_dir)?;
-    for possible_entry in dir_entries {
-        let entry = possible_entry?;
+    let wk = WalkDir::new(src_dir);
+    for entry in wk.into_iter().filter_map(|e| e.ok()) {
+        if entry.path().is_dir() {
+            continue;
+        }
         if let Some(ext) = entry.path().extension() {
             match ext.to_str().unwrap() {
                 "sha256" => {
@@ -114,10 +117,12 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> BinmanR
         final_file_name.set_extension(entry.path().extension().unwrap_or(&OsStr::new("")));
         let dst_entry = dst_dir.join(&final_file_name);
 
-        output.progress(&format!("Produced asset: {}", dst_entry.to_str().unwrap()));
-        fs::copy(entry.path(), &dst_entry)?;
-        file::make_executable(&dst_entry)?;
-        final_assets.push(String::from(dst_entry.to_str().unwrap()));
+        if file::is_executable(entry.path())? {
+            output.progress(&format!("Produced asset: {}", dst_entry.to_str().unwrap()));
+            fs::copy(entry.path(), &dst_entry)?;
+            file::make_executable(&dst_entry)?;
+            final_assets.push(String::from(dst_entry.to_str().unwrap()));
+        }
     }
 
     Ok(final_assets)
@@ -152,6 +157,7 @@ pub async fn async_install(
 
     if let Some(release) = maybe_release {
         let assets = release.platform_assets();
+        println!("Platform Assets: {:?}", assets);
         for asset in assets.iter() {
             save_asset(asset, temp_dir.path(), output.push()).await?;
         }
@@ -172,7 +178,12 @@ pub async fn async_install(
     }
 }
 
-pub fn install_target(repo_url: &str, version: &str, output: &OutputManager, optional_dir_override: Option<&str>) -> BinmanResult<()> {
+pub fn install_target(
+    repo_url: &str,
+    version: &str,
+    output: &OutputManager,
+    optional_dir_override: Option<&str>,
+) -> BinmanResult<()> {
     let cfg = Config::new()?;
     let mut state = State::new(&cfg.state_file_path)?;
 
@@ -198,12 +209,8 @@ pub fn install_target(repo_url: &str, version: &str, output: &OutputManager, opt
             };
 
             // TODO: Reuse runtime for multiple targets somehow.
-            let new_entry = Runtime::new()?.block_on(async_install(
-                &used_url,
-                version,
-                install_dir,
-                output,
-            ))?;
+            let new_entry =
+                Runtime::new()?.block_on(async_install(&used_url, version, install_dir, output))?;
 
             // Insert installation in state.
             state.insert(new_entry)?;
