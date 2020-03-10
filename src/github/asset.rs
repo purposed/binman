@@ -1,6 +1,34 @@
+use regex::Regex;
 use rood::sys::{Architecture, Platform};
 
 use serde::Deserialize;
+
+fn parse_architecture(name: &str) -> Architecture {
+    let archs = vec![Architecture::Amd64, Architecture::ARM];
+
+    for arc in archs.iter() {
+        for v in arc.value().iter() {
+            let ptn = Regex::new(&format!(r"-{}[-\.]", v)).unwrap();
+            if ptn.is_match(name) {
+                return arc.clone();
+            }
+        }
+    }
+
+    Architecture::Unknown
+}
+
+fn parse_platform(name: &str) -> Platform {
+    let plats = vec![Platform::Linux, Platform::Darwin, Platform::Windows];
+
+    for plat in plats.iter() {
+        let ptn = Regex::new(&format!(r"-{}[-\.]", plat.value())).unwrap();
+        if ptn.is_match(name) {
+            return plat.clone();
+        }
+    }
+    Platform::Unknown
+}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Asset {
@@ -31,21 +59,10 @@ impl Asset {
     }
 
     pub fn architecture(&self) -> Architecture {
-        match self.strip_extension().split('-').last() {
-            Some(v) => Architecture::from(v),
-            None => Architecture::Unknown,
-        }
+        parse_architecture(&self.name)
     }
 
     pub fn platform(&self) -> Platform {
-        match self
-            .strip_extension()
-            .split('-')
-            .collect::<Vec<&str>>()
-            .get(1)
-        {
-            Some(v) => Platform::from(*v),
-            None => Platform::Unknown,
-        }
+        parse_platform(&self.name)
     }
 }

@@ -1,4 +1,4 @@
-use rood::sys::Platform;
+use rood::sys::{Architecture, Platform};
 
 use semver::Version;
 use serde::Deserialize;
@@ -19,11 +19,11 @@ impl Release {
     }
 
     pub fn platform_assets(&self) -> Vec<&Asset> {
-        // TODO: Actually check architecture along with platform.
         let cur_platform = Platform::detect();
+        let cur_arch = Architecture::detect();
         self.assets
             .iter()
-            .filter(|asset| asset.platform() == cur_platform)
+            .filter(|asset| asset.platform() == cur_platform && asset.architecture() == cur_arch)
             .collect()
     }
 }

@@ -21,7 +21,9 @@ pub fn list(matches: &ArgMatches) -> Result<(), BinmanError> {
 
     let state = State::new(&cfg.state_file_path)?;
 
-    let installed_applications = state.list();
+    let mut installed_applications = state.list();
+
+    installed_applications.sort_by(|a, b| a.name.cmp(&b.name));
 
     for entry in installed_applications.iter() {
         display_entry(&output, entry);
