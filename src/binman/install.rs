@@ -157,7 +157,6 @@ pub async fn async_install(
 
     if let Some(release) = maybe_release {
         let assets = release.platform_assets();
-        println!("Platform Assets: {:?}", assets);
         for asset in assets.iter() {
             save_asset(asset, temp_dir.path(), output.push()).await?;
         }
