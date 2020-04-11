@@ -55,7 +55,7 @@ impl From<reqwest::Error> for BinmanError {
     fn from(v: reqwest::Error) -> BinmanError {
         if let Some(stat) = v.status() {
             // Status code
-            return BinmanError::new(Cause::HTTPStatus(stat), v.description());
+            return BinmanError::new(Cause::HTTPStatus(stat), &v.to_string());
         }
 
         BinmanError::new(Cause::UnknownError, "Unknown Error")
