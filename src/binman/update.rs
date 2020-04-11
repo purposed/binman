@@ -18,13 +18,13 @@ async fn async_update(
 
     let latest_v = latest.version()?;
     if latest_v > entry.version {
-        println!("Upgrade available: {}@{}", entry.name, latest_v);
+        output.progress(&format!("Upgrade available: {}@{}", entry.name, latest_v));
         uninstall_target(&entry.name, output)?;
         Ok(Some(
             async_install(&entry.url, &latest_v.to_string(), install_location, output).await?,
         ))
     } else {
-        println!("Nothing to do!");
+        output.success("Nothing to do!");
         Ok(None)
     }
 }
