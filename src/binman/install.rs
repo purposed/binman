@@ -72,8 +72,8 @@ fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
 
     let mut checksum = Sha256::new();
     let artifact_data = fs::read(checksum_target_path)?;
-    checksum.input(artifact_data);
-    let checksum_value = checksum.result();
+    checksum.update(artifact_data);
+    let checksum_value = checksum.finalize();
     let nicely_formatted_hash = format!("{:x}", checksum_value);
 
     if nicely_formatted_hash != expected_hash {
