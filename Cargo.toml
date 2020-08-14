@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "2.33.2"
+clap = "2.33.3"
 dirs = "3.0.1"
 http = "0.2.1"
 rood = "0.2.0"
