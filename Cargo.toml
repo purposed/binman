@@ -17,7 +17,7 @@ semver = { version = "0.11.0", features = ["serde"] }
 serde = { version = "1.0.118", features = ["derive"] }
 serde_json = "1.0.61"
 sha2 = "0.9.2"
-shellexpand = "2.0.0"
+shellexpand = "2.1.0"
 tempfile = "3.1.0"
 tokio = "0.3.6"
 walkdir = "2"
