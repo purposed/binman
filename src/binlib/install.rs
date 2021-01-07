@@ -3,27 +3,26 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use anyhow::{ensure, Context, Result};
+
 use reqwest;
+
 use rood::cli::OutputManager;
-use rood::sys::file;
+use rood::sys::file::{self, ensure_exists};
+
 use sha2::{Digest, Sha256};
+
 use tempfile::tempdir;
-use tokio::runtime::Runtime;
+
 use walkdir::WalkDir;
 
 use super::fuzzy_semver::parse_version_fuzzy;
 use super::zip;
 use super::{Config, State, StateEntry};
-use crate::error::{BinmanError, BinmanResult, Cause};
 use crate::github::{Asset, Client, Repository};
-use rood::sys::file::ensure_exists;
 use std::ffi::OsStr;
 
-async fn save_asset(
-    asset: &Asset,
-    install_location: &Path,
-    output: OutputManager,
-) -> BinmanResult<()> {
+async fn save_asset(asset: &Asset, install_location: &Path, output: OutputManager) -> Result<()> {
     let mut asset_dest_path = install_location.join(&format!(
         "{}-{}-{}",
         asset.name(),
@@ -50,7 +49,7 @@ async fn save_asset(
     Ok(())
 }
 
-fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
+fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> Result<()> {
     // TODO: Extract to rood.
 
     // Read checksum file.
@@ -59,16 +58,15 @@ fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
     let expected_hash = checksum_raw
         .split_ascii_whitespace()
         .next()
-        .ok_or_else(|| BinmanError::new(Cause::InvalidState, "Invalid SHA256 format"))?;
+        .context("Invalid SHA256 Format")?;
 
     let checksum_file_name = checksum_raw
         .split_ascii_whitespace()
         .last()
-        .ok_or_else(|| BinmanError::new(Cause::InvalidState, "Invalid SHA256 format"))?;
+        .context("Invalid SHA256 Format")?;
 
     let checksum_target_path = src_dir.join(checksum_file_name);
-    ensure_exists(&checksum_target_path)
-        .map_err(|_e| BinmanError::new(Cause::NotFound, "Checksum target not found"))?;
+    ensure_exists(&checksum_target_path).context("Checksum target not found")?;
 
     let mut checksum = Sha256::new();
     let artifact_data = fs::read(checksum_target_path)?;
@@ -76,12 +74,11 @@ fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
     let checksum_value = checksum.finalize();
     let nicely_formatted_hash = format!("{:x}", checksum_value);
 
-    if nicely_formatted_hash != expected_hash {
-        return Err(BinmanError::new(
-            Cause::InvalidState,
-            &format!("Checksum verification failed for {}", checksum_file_name),
-        ));
-    }
+    ensure!(
+        nicely_formatted_hash == expected_hash,
+        "Checksum verification failed for {}",
+        checksum_file_name
+    );
 
     // Delete checksum file
     fs::remove_file(checksum_file_path)?;
@@ -89,7 +86,7 @@ fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> BinmanResult<()> {
     Ok(())
 }
 
-fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> BinmanResult<Vec<String>> {
+fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> Result<Vec<String>> {
     let mut final_assets = Vec::new();
     let wk = WalkDir::new(src_dir);
     for entry in wk.into_iter().filter_map(|e| e.ok()) {
@@ -133,7 +130,7 @@ pub async fn async_install(
     version: &str,
     install_location: &str,
     output: &OutputManager,
-) -> BinmanResult<StateEntry> {
+) -> Result<StateEntry> {
     // Ensure install directory exists.
     fs::create_dir_all(install_location)?;
 
@@ -155,34 +152,31 @@ pub async fn async_install(
             .cloned()
     };
 
-    if let Some(release) = maybe_release {
-        let assets = release.platform_assets();
-        for asset in assets.iter() {
-            save_asset(asset, temp_dir.path(), output.push()).await?;
-        }
+    ensure!(maybe_release.is_some(), "Version {} not found", version);
 
-        let asset_paths = move_assets(temp_dir.path(), Path::new(install_location), output.push())?;
-        output.success("OK");
-        Ok(StateEntry {
-            name: repo.name.clone(),
-            url: String::from(repo_url),
-            version: release.version()?,
-            artifacts: asset_paths,
-        })
-    } else {
-        Err(BinmanError::new(
-            Cause::NotFound,
-            &format!("Version {} not found", version),
-        ))
+    let release = maybe_release.unwrap();
+
+    let assets = release.platform_assets();
+    for asset in assets.iter() {
+        save_asset(asset, temp_dir.path(), output.push()).await?;
     }
+
+    let asset_paths = move_assets(temp_dir.path(), Path::new(install_location), output.push())?;
+    output.success("OK");
+    Ok(StateEntry {
+        name: repo.name.clone(),
+        url: String::from(repo_url),
+        version: release.version()?,
+        artifacts: asset_paths,
+    })
 }
 
-pub fn install_target(
+pub async fn install_target(
     repo_url: &str,
     version: &str,
     output: &OutputManager,
-    optional_dir_override: Option<&str>,
-) -> BinmanResult<()> {
+    optional_dir_override: Option<&String>,
+) -> Result<()> {
     let cfg = Config::new()?;
     let mut state = State::new(&cfg.state_file_path)?;
 
@@ -195,26 +189,22 @@ pub fn install_target(
 
     let app_name = &Repository::from_url(&used_url)?.name;
 
-    match state.get(app_name) {
-        Some(t) => Err(BinmanError::new(
-            Cause::AlreadyExists,
-            &format!("Target [{}] is already installed", t.name),
-        )),
-        None => {
-            let install_dir = if let Some(overr) = optional_dir_override {
-                overr
-            } else {
-                &cfg.install_location
-            };
+    ensure!(
+        state.get(app_name).is_none(),
+        "Target [{}] is already installed",
+        app_name
+    );
 
-            // TODO: Reuse runtime for multiple targets somehow.
-            let new_entry =
-                Runtime::new()?.block_on(async_install(&used_url, version, install_dir, output))?;
+    let install_dir = if let Some(overr) = optional_dir_override {
+        overr
+    } else {
+        &cfg.install_location
+    };
 
-            // Insert installation in state.
-            state.insert(new_entry)?;
+    let new_entry = async_install(&used_url, version, install_dir, output).await?;
 
-            Ok(())
-        }
-    }
+    // Insert installation in state.
+    state.insert(new_entry)?;
+
+    Ok(())
 }

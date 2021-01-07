@@ -4,10 +4,10 @@ use std::io::{BufWriter, Write};
 use std::ops::Add;
 use std::path::Path;
 
+use anyhow::{ensure, Result};
+
 use semver::Version;
 use serde::{Deserialize, Serialize};
-
-use crate::error::{BinmanError, BinmanResult, Cause};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StateEntry {
@@ -23,7 +23,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(path: &str) -> BinmanResult<State> {
+    pub fn new(path: &str) -> Result<State> {
         let mut s = State {
             path: String::from(path),
             internal_data: HashMap::new(),
@@ -34,34 +34,28 @@ impl State {
         Ok(s)
     }
 
-    fn acquire_lock(&self) -> BinmanResult<()> {
+    fn acquire_lock(&self) -> Result<()> {
         let lock_str = self.path.clone().add(".lock");
         let lock_path = Path::new(&lock_str);
-        if lock_path.exists() {
-            return Err(BinmanError::new(Cause::LockError, "Lock already acquired"));
-        }
+
+        ensure!(!lock_path.exists(), "Lock is already acquired");
+
         let mut file_handle = fs::File::create(lock_path)?;
         file_handle.write_all(b"lock")?;
         Ok(())
     }
 
-    fn release_lock(&self) -> BinmanResult<()> {
+    fn release_lock(&self) -> Result<()> {
         let lock_str = self.path.clone().add(".lock");
         let lock_path = Path::new(&lock_str);
 
-        if lock_path.exists() {
-            fs::remove_file(lock_path)?;
-        } else {
-            return Err(BinmanError::new(
-                Cause::LockError,
-                "Attempted to release a free state lock",
-            ));
-        }
+        ensure!(lock_path.exists(), "Attempted to release a free lock");
+        fs::remove_file(lock_path)?;
 
         Ok(())
     }
 
-    fn refresh(&mut self) -> BinmanResult<()> {
+    fn refresh(&mut self) -> Result<()> {
         self.internal_data = HashMap::new();
         if let Ok(contents) = fs::read_to_string(&self.path) {
             if let Ok(internal_data) = serde_json::from_str(&contents) {
@@ -83,14 +77,13 @@ impl State {
         self.internal_data.iter().map(|(_, v)| v).collect()
     }
 
-    pub fn insert(&mut self, mut entry: StateEntry) -> BinmanResult<()> {
+    pub fn insert(&mut self, mut entry: StateEntry) -> Result<()> {
         // Will throw if entry already exists.
-        if self.internal_data.contains_key(&entry.name) {
-            return Err(BinmanError::new(
-                Cause::AlreadyExists,
-                &format!("Target {} already in state", &entry.name),
-            ));
-        }
+        ensure!(
+            !self.internal_data.contains_key(&entry.name),
+            "Target {} already in state",
+            &entry.name
+        );
 
         // De-duplicate entry artifacts.
         let mut v = Vec::new();
@@ -106,13 +99,13 @@ impl State {
         self.save()
     }
 
-    fn save(&self) -> BinmanResult<()> {
+    fn save(&self) -> Result<()> {
         let file_handle = fs::File::create(&self.path)?;
         serde_json::to_writer(BufWriter::new(file_handle), &self.internal_data)?;
         Ok(())
     }
 
-    pub fn remove(&mut self, entry_name: &str) -> BinmanResult<()> {
+    pub fn remove(&mut self, entry_name: &str) -> Result<()> {
         if self.internal_data.contains_key(entry_name) {
             self.internal_data.remove(entry_name);
             self.save()?

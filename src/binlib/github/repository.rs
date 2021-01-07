@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use anyhow::{ensure, Result};
 
-use crate::error::{BinmanError, BinmanResult, Cause};
+use serde::Deserialize;
 
 static GITHUB_RELEASES_PATTERN: &str = "https://api.github.com/repos/{owner}/{name}/releases";
 static GITHUB_LATEST_RELEASE: &str = "https://api.github.com/repos/{owner}/{name}/releases/latest";
@@ -24,14 +24,10 @@ impl Repository {
             .replace("{name}", &self.name)
     }
 
-    pub fn from_url(url: &str) -> BinmanResult<Repository> {
+    pub fn from_url(url: &str) -> Result<Repository> {
         let splitted: Vec<&str> = url.split('/').collect();
-        if splitted.len() < 2 {
-            return Err(BinmanError::new(
-                Cause::InvalidData,
-                &format!("URL \"{}\" is invalid", url),
-            ));
-        }
+
+        ensure!(splitted.len() < 2, "URL \"{}\" is invalid", url);
 
         Ok(Repository::new(
             splitted.last().unwrap(),

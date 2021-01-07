@@ -1,4 +1,5 @@
 use regex::Regex;
+
 use rood::sys::{Architecture, Platform};
 
 use serde::Deserialize;

@@ -1,5 +1,6 @@
 mod config;
 pub mod fuzzy_semver;
+mod github;
 mod install;
 mod state;
 mod uninstall;

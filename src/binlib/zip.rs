@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use crate::error::{BinmanError, BinmanResult, Cause};
+use anyhow::{ensure, Result};
 
 pub enum CompressionType {
     Zip,
@@ -9,7 +9,7 @@ pub enum CompressionType {
 }
 
 #[cfg(target_family = "unix")]
-fn unzip_unix(zip_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
+fn unzip_unix(zip_file: &Path, tgt_dir: &Path) -> Result<()> {
     // TODO: Validate that unzip is installed.
     // This throws a bad error.
     let mut child = Command::new("unzip")
@@ -21,18 +21,15 @@ fn unzip_unix(zip_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
         .spawn()?;
 
     let status = child.wait()?;
-    if status.success() {
-        Ok(())
-    } else {
-        let code = status.code().unwrap_or(1);
-        Err(BinmanError::new(
-            Cause::InvalidState,
-            &format!("Error with unzip - status: {}", code),
-        ))
-    }
+    ensure!(
+        status.success(),
+        "Error with unzip - status: {}",
+        status.code().unwrap_or(1)
+    );
+    Ok(())
 }
 
-fn unzip(zip_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
+fn unzip(zip_file: &Path, tgt_dir: &Path) -> Result<()> {
     if cfg!(unix) {
         unzip_unix(zip_file, tgt_dir)
     } else {
@@ -42,7 +39,7 @@ fn unzip(zip_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
 }
 
 #[cfg(target_family = "unix")]
-fn untar_unix(tar_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
+fn untar_unix(tar_file: &Path, tgt_dir: &Path) -> Result<()> {
     let mut child = Command::new("tar")
         .arg("xvzf")
         .arg(tar_file)
@@ -57,14 +54,12 @@ fn untar_unix(tar_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
         Ok(())
     } else {
         let code = status.code().unwrap_or(1);
-        Err(BinmanError::new(
-            Cause::InvalidState,
-            &format!("Error with untar - status: {}", code),
-        ))
+        ensure!(status.success(), "Error with untar - status: {}", code);
+        Ok(())
     }
 }
 
-fn untar(tar_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
+fn untar(tar_file: &Path, tgt_dir: &Path) -> Result<()> {
     if cfg!(unix) {
         untar_unix(tar_file, tgt_dir)
     } else {
@@ -73,7 +68,7 @@ fn untar(tar_file: &Path, tgt_dir: &Path) -> BinmanResult<()> {
     }
 }
 
-pub fn extract(path: &Path, tgt_dir: &Path, compression: CompressionType) -> BinmanResult<()> {
+pub fn extract(path: &Path, tgt_dir: &Path, compression: CompressionType) -> Result<()> {
     match compression {
         CompressionType::Zip => unzip(path, tgt_dir),
         CompressionType::Tarball => untar(path, tgt_dir),

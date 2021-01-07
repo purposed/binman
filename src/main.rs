@@ -1,100 +1,63 @@
-use clap::{App, AppSettings, Arg, SubCommand};
-
-mod binman;
-mod error;
-
 mod cli;
-use cli::run_main;
 
-mod github;
+use anyhow::Result;
+
+use clap::Clap;
+
+use cli::{InstallCommand, ListCommand, UninstallCommand, UpdateCommand};
+
 use rood::cli::OutputManager;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn main() {
-    let app = App::new("binman")
-        .version(VERSION)
-        .author("Purposed")
-        .about("Binary Package Manager")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .subcommand(
-            SubCommand::with_name("list")
-                .about("Lists installed binaries")
-                .arg(
-                    Arg::with_name("verbose")
-                        .short("v")
-                        .long("verbose")
-                        .help("Whether to use verbose output")
-                        .required(false),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("install")
-                .about("Installs a binary")
-                .arg(
-                    Arg::with_name("repo_url")
-                        .required(true)
-                        .help("The URL of the github repo from which to fetch the binary"),
-                )
-                .arg(
-                    Arg::with_name("version")
-                        .required(false)
-                        .default_value("latest")
-                        .help("The version to install."),
-                )
-                .arg(
-                    Arg::with_name("dir")
-                    .long("--dir")
-                    .required(false)
-                    .value_name("INSTALL_DIR")
-                    .help("The installation directory (overrides config.json)")
-                )
-                .arg(
-                    Arg::with_name("verbose")
-                        .short("v")
-                        .long("verbose")
-                        .help("Whether to use verbose output")
-                        .required(false),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("update")
-                .about("Updates a binary")
-                .arg(
-                    Arg::with_name("binary")
-                        .required(false)
-                        .multiple(true)
-                        .help("The name of the binary to update"),
-                )
-                .arg(
-                    Arg::with_name("verbose")
-                        .short("v")
-                        .long("verbose")
-                        .required(false)
-                        .help("Whether to use verbose output"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("uninstall")
-                .about("Uninstalls a binary")
-                .arg(
-                    Arg::with_name("binary")
-                        .required(true)
-                        .multiple(true)
-                        .help("The name of the binary to uninstall"),
-                )
-                .arg(
-                    Arg::with_name("verbose")
-                        .short("v")
-                        .long("verbose")
-                        .help("Whether to use verbose output")
-                        .required(false),
-                ),
-        );
+#[derive(Clap)]
+#[clap(version = VERSION, author = "Purposed")]
+struct Root {
+    /// Whether to use verbose output.
+    #[clap(short = 'v', long = "verbose", global = true)]
+    verbose: bool,
 
-    let root_om = OutputManager::new(false);
-    match run_main(app.get_matches()) {
-        Ok(_) => {}
-        Err(e) => root_om.error(&format!("{}", e)),
+    #[clap(subcommand)]
+    command: Domain,
+}
+
+impl Root {
+    pub async fn run(&self) -> Result<()> {
+        let cli = OutputManager::new(self.verbose);
+
+        match &self.command {
+            Domain::List(cmd) => cmd.run(cli).await?,
+            Domain::Install(cmd) => cmd.run(cli).await?,
+            Domain::Update(cmd) => cmd.run(cli).await?,
+            Domain::Uninstall(cmd) => cmd.run(cli).await?,
+        };
+
+        Ok(())
+    }
+}
+
+#[derive(Clap)]
+enum Domain {
+    /// List all installed packages.
+    #[clap(name = "list")]
+    List(ListCommand),
+
+    /// Install a package from a given repository.
+    #[clap(name = "install")]
+    Install(InstallCommand),
+
+    /// Update a package.
+    #[clap(name = "update")]
+    Update(UpdateCommand),
+
+    /// Uninstall a package.
+    #[clap(name = "uninstall")]
+    Uninstall(UninstallCommand),
+}
+
+#[tokio::main]
+async fn main() {
+    if let Err(e) = Root::parse().run().await {
+        OutputManager::new(false).error(&e.to_string());
     }
 }

@@ -1,17 +1,15 @@
-use rood::cli::OutputManager;
-use tokio::runtime::Runtime;
+use anyhow::{anyhow, Result};
 
-use super::{Config, State};
-use crate::binman::install::async_install;
-use crate::binman::{uninstall_target, StateEntry};
-use crate::error::{BinmanError, BinmanResult, Cause};
+use rood::cli::OutputManager;
+
 use crate::github::Client;
+use crate::{install::async_install, uninstall_target, Config, State, StateEntry};
 
 async fn async_update(
     entry: &StateEntry,
     install_location: &str,
     output: &OutputManager,
-) -> BinmanResult<Option<StateEntry>> {
+) -> Result<Option<StateEntry>> {
     let client = Client::new()?;
     let repo = client.get_repository(&entry.url)?;
     let latest = client.latest_release(&repo).await?;
@@ -29,7 +27,7 @@ async fn async_update(
     }
 }
 
-pub fn update_target(target: &str, output: &OutputManager) -> BinmanResult<()> {
+pub async fn update_target(target: &str, output: &OutputManager) -> Result<()> {
     let cfg = Config::new()?;
 
     // Get existing entry.
@@ -37,16 +35,12 @@ pub fn update_target(target: &str, output: &OutputManager) -> BinmanResult<()> {
     {
         // Get read scope on state.
         let state = State::new(&cfg.state_file_path)?;
-        entry = state.get_copy(target).ok_or_else(|| {
-            BinmanError::new(
-                Cause::NotFound,
-                &format!("Binary {} is not installed", target),
-            )
-        })?;
+        entry = state
+            .get_copy(target)
+            .ok_or_else(|| anyhow!("Binary [{}] is not installed", target))?;
     }
 
-    let possible_new_entry =
-        Runtime::new()?.block_on(async_update(&entry, &cfg.install_location, output))?;
+    let possible_new_entry = async_update(&entry, &cfg.install_location, output).await?;
     {
         // Get write scope on state.
         let mut state = State::new(&cfg.state_file_path)?;

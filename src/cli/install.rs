@@ -1,21 +1,37 @@
-use clap::ArgMatches;
+use anyhow::Result;
+
+use binlib::install_target;
+
+use clap::Clap;
 
 use rood::cli::OutputManager;
 
-use crate::binman::install_target;
-use crate::error::BinmanResult;
+#[derive(Clap)]
+pub struct InstallCommand {
+    /// The repository URL.
+    #[clap(name = "repo_url")]
+    repo_url: String,
 
-pub fn install(matches: &ArgMatches) -> BinmanResult<()> {
-    let verbose = matches.is_present("verbose");
-    let output = OutputManager::new(verbose);
-    let output_dir = matches.value_of("dir");
+    /// The pacakge version.
+    #[clap(name = "version", default_value = "latest")]
+    version: String,
 
-    output.step("Installation");
+    /// The installation directory (overrides config.json)
+    #[clap(name = "dir", long = "dir", value_name = "INSTALL_DIR")]
+    dir: Option<String>,
+}
 
-    let target: &str = matches.value_of("repo_url").unwrap(); // Mandatory argument.
-    let version = matches.value_of("version").unwrap();
-    install_target(target, version, &output.push(), output_dir)?;
-
-    output.success("Installation Successful");
-    Ok(())
+impl InstallCommand {
+    pub async fn run(&self, output: OutputManager) -> Result<()> {
+        output.step("Installation");
+        install_target(
+            &self.repo_url,
+            &self.version,
+            &output.push(),
+            self.dir.as_ref(),
+        )
+        .await?;
+        output.success("Installation Successful");
+        Ok(())
+    }
 }

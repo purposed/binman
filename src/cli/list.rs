@@ -1,9 +1,10 @@
-use clap::ArgMatches;
+use anyhow::Result;
+
+use clap::Clap;
 
 use rood::cli::OutputManager;
 
-use crate::binman::{Config, State, StateEntry};
-use crate::error::BinmanError;
+use binlib::{Config, State, StateEntry};
 
 fn display_entry(output: &OutputManager, entry: &StateEntry) {
     output.step(&format!("{}@{}", &entry.name, &entry.version));
@@ -14,19 +15,22 @@ fn display_entry(output: &OutputManager, entry: &StateEntry) {
     }
 }
 
-pub fn list(matches: &ArgMatches) -> Result<(), BinmanError> {
-    let verbose = matches.is_present("verbose");
-    let output = OutputManager::new(verbose);
-    let cfg = Config::new()?;
+#[derive(Clap)]
+pub struct ListCommand {}
 
-    let state = State::new(&cfg.state_file_path)?;
+impl ListCommand {
+    pub async fn run(&self, output: OutputManager) -> Result<()> {
+        let cfg = Config::new()?;
 
-    let mut installed_applications = state.list();
+        let state = State::new(&cfg.state_file_path)?;
 
-    installed_applications.sort_by(|a, b| a.name.cmp(&b.name));
+        let mut installed_applications = state.list();
 
-    for entry in installed_applications.iter() {
-        display_entry(&output, entry);
+        installed_applications.sort_by(|a, b| a.name.cmp(&b.name));
+
+        for entry in installed_applications.iter() {
+            display_entry(&output, entry);
+        }
+        Ok(())
     }
-    Ok(())
 }

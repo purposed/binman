@@ -1,11 +1,14 @@
+use anyhow::Result;
+
 use rood::sys::{Architecture, Platform};
 
 use semver::Version;
+
 use serde::Deserialize;
 
+use crate::fuzzy_semver::parse_version_fuzzy;
+
 use super::Asset;
-use crate::binman::fuzzy_semver::parse_version_fuzzy;
-use crate::error::BinmanResult;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Release {
@@ -14,7 +17,7 @@ pub struct Release {
 }
 
 impl Release {
-    pub fn version(&self) -> BinmanResult<Version> {
+    pub fn version(&self) -> Result<Version> {
         parse_version_fuzzy(&self.tag_name)
     }
 

@@ -1,19 +1,25 @@
-use clap::ArgMatches;
+use anyhow::Result;
+
+use binlib::update_target;
+
+use clap::Clap;
+
 use rood::cli::OutputManager;
 
-use crate::binman::update_target;
-use crate::error::BinmanResult;
+#[derive(Clap)]
+pub struct UpdateCommand {
+    /// The name of the package(s) to update.
+    binary: Vec<String>,
+}
 
-pub fn update(matches: &ArgMatches) -> BinmanResult<()> {
-    let verbose = matches.is_present("verbose");
-    let output = OutputManager::new(verbose);
+impl UpdateCommand {
+    pub async fn run(&self, output: OutputManager) -> Result<()> {
+        for target in self.binary.iter() {
+            update_target(target, &output).await?;
+        }
 
-    let targets: Vec<&str> = matches.values_of("binary").unwrap().collect();
-    for target in targets.iter() {
-        update_target(target, &output)?;
+        output.success("Update Complete");
+
+        Ok(())
     }
-
-    output.success("Update Complete");
-
-    Ok(())
 }
