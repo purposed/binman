@@ -4,8 +4,6 @@ use http::status::StatusCode;
 
 use reqwest::{self, header};
 
-use serde_json;
-
 use super::{Release, Repository};
 
 pub struct Client {

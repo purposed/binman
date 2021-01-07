@@ -3,13 +3,9 @@ use std::io::BufWriter;
 
 use anyhow::{anyhow, Result};
 
-use dirs;
-
 use shellexpand::tilde;
 
 use serde::{Deserialize, Serialize};
-
-use serde_json;
 
 fn default_code_host() -> String {
     String::from("github.com/purposed")

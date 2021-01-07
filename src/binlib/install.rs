@@ -5,8 +5,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{ensure, Context, Result};
 
-use reqwest;
-
 use rood::cli::OutputManager;
 use rood::sys::file::{self, ensure_exists};
 
