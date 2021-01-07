@@ -27,7 +27,7 @@ impl Repository {
     pub fn from_url(url: &str) -> Result<Repository> {
         let splitted: Vec<&str> = url.split('/').collect();
 
-        ensure!(splitted.len() < 2, "URL \"{}\" is invalid", url);
+        ensure!(splitted.len() >= 2, "URL \"{}\" is invalid", url);
 
         Ok(Repository::new(
             splitted.last().unwrap(),
