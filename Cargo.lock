@@ -206,9 +206,9 @@ dependencies = [
 
 [[package]]
 name = "colored"
-version = "1.9.2"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8815e2ab78f3a59928fc32e141fbeece88320a240e43f47b2fd64ea3a88a5b3d"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
 dependencies = [
  "atty",
  "lazy_static",
@@ -1076,11 +1076,22 @@ dependencies = [
 
 [[package]]
 name = "rood"
-version = "0.2.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae1fba468328b4ac3c53b35635e168c71da95fc0c41146c4fe4365872744d49b"
+checksum = "b81f05ee0f568eba0e9bc104ee626d09a6860211c78a892d0cba9db6ff74c45d"
 dependencies = [
  "colored",
+ "rpassword",
+]
+
+[[package]]
+name = "rpassword"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffc936cf8a7ea60c58f030fd36a612a48f440610214dc54bc36431f9ea0c3efb"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
