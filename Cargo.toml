@@ -19,7 +19,7 @@ anyhow = "1"
 clap = "3.0.0-beta.2"
 dirs = "3.0.1"
 http = "0.2.3"
-rood = "0.3.2"
+rood = "0.4.0"
 regex = "1.4.3"
 reqwest = { version = "0.11", features = ["json"]}
 semver = { version = "0.11.0", features = ["serde"] }
