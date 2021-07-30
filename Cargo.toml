@@ -22,7 +22,7 @@ http = "0.2.4"
 rood = "0.4.0"
 regex = "1.5.4"
 reqwest = { version = "0.11", features = ["json"]}
-semver = { version = "1.0.3", features = ["serde"] }
+semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.65"
 sha2 = "0.9.5"
