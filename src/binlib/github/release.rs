@@ -24,9 +24,27 @@ impl Release {
     pub fn platform_assets(&self) -> Vec<&Asset> {
         let cur_platform = Platform::detect();
         let cur_arch = Architecture::detect();
-        self.assets
-            .iter()
-            .filter(|asset| asset.platform() == cur_platform && asset.architecture() == cur_arch)
-            .collect()
+
+        // Hack to support Apple Silicon + Rosetta
+        let fallback_architectures =
+            if cur_platform == Platform::Darwin && cur_arch == Architecture::Arm64 {
+                vec![Architecture::Arm64, Architecture::Amd64]
+            } else {
+                vec![cur_arch]
+            };
+
+        for arch in fallback_architectures {
+            let arch_assets = self
+                .assets
+                .iter()
+                .filter(|asset| asset.platform() == cur_platform && asset.architecture() == arch)
+                .collect::<Vec<_>>();
+
+            if !arch_assets.is_empty() {
+                return arch_assets;
+            }
+        }
+
+        Vec::default()
     }
 }

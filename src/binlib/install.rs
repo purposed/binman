@@ -18,7 +18,6 @@ use super::fuzzy_semver::parse_version_fuzzy;
 use super::zip;
 use super::{Config, State, StateEntry};
 use crate::github::{Asset, Client, Repository};
-use std::ffi::OsStr;
 
 async fn save_asset(asset: &Asset, install_location: &Path, output: OutputManager) -> Result<()> {
     let mut asset_dest_path = install_location.join(&format!(
@@ -98,7 +97,7 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> Result<
                         "Validating checksum: {}",
                         entry.file_name().to_str().unwrap()
                     ));
-                    do_checksum(src_dir, &entry.path())?;
+                    do_checksum(src_dir, entry.path())?;
                     continue;
                 }
                 "md5" => continue,
@@ -109,7 +108,7 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> Result<
         let raw_fn = entry.file_name();
         let current_file_name = raw_fn.to_str().unwrap();
         let mut final_file_name = PathBuf::from(current_file_name.split('-').next().unwrap());
-        final_file_name.set_extension(entry.path().extension().unwrap_or(&OsStr::new("")));
+        final_file_name.set_extension(entry.path().extension().unwrap_or_default());
         let dst_entry = dst_dir.join(&final_file_name);
 
         if file::is_executable(entry.path())? {
@@ -156,7 +155,11 @@ pub async fn async_install(
 
     let assets = release.platform_assets();
     for asset in assets.iter() {
-        save_asset(asset, temp_dir.path(), output.push()).await?;
+        if assets.len() == 1
+            || output.prompt_yn(format!("Install asset {}", asset.full_name()), true)?
+        {
+            save_asset(asset, temp_dir.path(), output.push()).await?;
+        }
     }
 
     let asset_paths = move_assets(temp_dir.path(), Path::new(install_location), output.push())?;

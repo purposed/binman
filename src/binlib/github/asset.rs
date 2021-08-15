@@ -5,7 +5,7 @@ use rood::sys::{Architecture, Platform};
 use serde::Deserialize;
 
 fn parse_architecture(name: &str) -> Architecture {
-    let archs = vec![Architecture::Amd64, Architecture::ARM];
+    let archs = vec![Architecture::Amd64, Architecture::Arm, Architecture::Arm64];
 
     for arc in archs.iter() {
         for v in arc.value().iter() {
@@ -38,6 +38,10 @@ pub struct Asset {
 }
 
 impl Asset {
+    pub fn full_name(&self) -> &str {
+        &self.name
+    }
+
     fn strip_extension(&self) -> &str {
         self.name.split('.').next().unwrap()
     }
