@@ -154,6 +154,9 @@ pub async fn async_install(
     let release = maybe_release.unwrap();
 
     let assets = release.platform_assets();
+
+    ensure!(!assets.is_empty(), "No assets found for current platform");
+
     for asset in assets.iter() {
         if assets.len() == 1
             || output.prompt_yn(format!("Install asset {}", asset.full_name()), true)?
