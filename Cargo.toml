@@ -23,7 +23,7 @@ rood = "0.4.1"
 regex = "1.5.4"
 reqwest = { version = "0.11", features = ["json"]}
 semver = { version = "1.0.4", features = ["serde"] }
-serde = { version = "1.0.127", features = ["derive"] }
+serde = { version = "1.0.128", features = ["derive"] }
 serde_json = "1.0.66"
 sha2 = "0.9.5"
 shellexpand = "2.1.0"
