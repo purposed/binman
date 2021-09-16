@@ -17,7 +17,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 clap = "3.0.0-beta.4"
-dirs = "3.0.2"
+dirs = "4.0.0"
 http = "0.2.4"
 rood = "0.4.1"
 regex = "1.5.4"
