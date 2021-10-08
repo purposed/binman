@@ -33,14 +33,6 @@ impl Release {
                 vec![cur_arch]
             };
 
-        println!(
-            "Assets: {:?}",
-            &self
-                .assets
-                .iter()
-                .map(|a| (String::from(a.name()), a.platform(), a.architecture()))
-                .collect::<Vec<(String, Platform, Architecture)>>()
-        );
         for arch in fallback_architectures {
             let arch_assets = self
                 .assets
