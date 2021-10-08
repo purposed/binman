@@ -9,10 +9,8 @@ fn parse_architecture(name: &str) -> Architecture {
 
     for arc in archs.iter() {
         for v in arc.value().iter() {
-            println!("trying {} for {}", v, name);
             let ptn = Regex::new(&format!(r"-{}", v)).unwrap();
             if ptn.is_match(name) {
-                println!("found");
                 return arc.clone();
             }
         }
