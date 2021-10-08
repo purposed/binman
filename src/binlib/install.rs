@@ -29,6 +29,8 @@ async fn save_asset(asset: &Asset, install_location: &Path, output: OutputManage
     let extension = asset.extension();
     asset_dest_path.set_extension(extension);
 
+    output.debug(format!("asset download path: {:?}", &asset_dest_path));
+
     // Download the file
     let resp = reqwest::get(&asset.browser_download_url).await?;
     let bytes_buffer = resp.bytes().await?;
@@ -41,6 +43,9 @@ async fn save_asset(asset: &Asset, install_location: &Path, output: OutputManage
         output.progress("Inflating compressed release");
         zip::extract(&asset_dest_path, install_location, compression)?;
         fs::remove_file(&asset_dest_path)?;
+    } else {
+        // If no compression, we should have an executable.
+        file::make_executable(&asset_dest_path)?;
     }
 
     Ok(())

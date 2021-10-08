@@ -9,8 +9,10 @@ fn parse_architecture(name: &str) -> Architecture {
 
     for arc in archs.iter() {
         for v in arc.value().iter() {
-            let ptn = Regex::new(&format!(r"-{}[-\.]", v)).unwrap();
+            println!("trying {} for {}", v, name);
+            let ptn = Regex::new(&format!(r"-{}", v)).unwrap();
             if ptn.is_match(name) {
+                println!("found");
                 return arc.clone();
             }
         }
@@ -23,9 +25,11 @@ fn parse_platform(name: &str) -> Platform {
     let plats = vec![Platform::Linux, Platform::Darwin, Platform::Windows];
 
     for plat in plats.iter() {
-        let ptn = Regex::new(&format!(r"-{}[-\.]", plat.value())).unwrap();
-        if ptn.is_match(name) {
-            return plat.clone();
+        for plat_value in plat.value().iter() {
+            let ptn = Regex::new(&format!(r"-{}[-\.]", plat_value)).unwrap();
+            if ptn.is_match(name) {
+                return plat.clone();
+            }
         }
     }
     Platform::Unknown
