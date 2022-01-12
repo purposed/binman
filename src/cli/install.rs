@@ -2,11 +2,11 @@ use anyhow::Result;
 
 use binlib::install_target;
 
-use clap::Clap;
+use clap::Parser;
 
 use rood::cli::OutputManager;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct InstallCommand {
     /// The repository URL.
     #[clap(name = "repo_url")]
