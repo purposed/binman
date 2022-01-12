@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use clap::Clap;
+use clap::Parser;
 
 use rood::cli::OutputManager;
 
@@ -15,7 +15,7 @@ fn display_entry(output: &OutputManager, entry: &StateEntry) {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct ListCommand {}
 
 impl ListCommand {

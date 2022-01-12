@@ -2,11 +2,11 @@ use anyhow::Result;
 
 use binlib::uninstall_target;
 
-use clap::Clap;
+use clap::Parser;
 
 use rood::cli::OutputManager;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct UninstallCommand {
     /// The package(s) to uninstall.
     binary: Vec<String>,

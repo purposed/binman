@@ -2,11 +2,11 @@ use anyhow::Result;
 
 use binlib::update_target;
 
-use clap::Clap;
+use clap::Parser;
 
 use rood::cli::OutputManager;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct UpdateCommand {
     /// The name of the package(s) to update.
     binary: Vec<String>,

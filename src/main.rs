@@ -2,7 +2,7 @@ mod cli;
 
 use anyhow::Result;
 
-use clap::Clap;
+use clap::Parser;
 
 use cli::{InstallCommand, ListCommand, UninstallCommand, UpdateCommand};
 
@@ -10,7 +10,7 @@ use rood::cli::OutputManager;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = VERSION, author = "Purposed")]
 struct Root {
     /// Whether to use verbose output.
@@ -36,7 +36,7 @@ impl Root {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum Domain {
     /// List all installed packages.
     #[clap(name = "list")]
