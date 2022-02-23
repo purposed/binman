@@ -1,8 +1,9 @@
 [package]
 name = "binman"
 version = "0.4.4"
-authors = ["William Dussault <dalloriam@gmail.com>"]
-edition = "2018"
+authors = ["William Dussault <william@dussault.dev>"]
+edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
