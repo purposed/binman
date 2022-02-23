@@ -16,23 +16,23 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Bootstrap Landlord
-        run: |
-          sudo wget https://github.com/purposed/landlord/releases/download/v0.1.5/landlord-linux-amd64 -O /usr/local/bin/landlord
-          sudo chmod +x /usr/local/bin/landlord
       - name: Mount build cache
         uses: actions/cache@v1
         with:
           path: "target"
           key: binman-release-cache
-      - name: Landlord Release
+      - name: Build/Release
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+      - name: Rename
         run: |
-          landlord validate
-          landlord release
+          mv target/release/binman binman-linux-amd64
       - name: Release
         uses: docker://softprops/action-gh-release
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: artifacts/linux-amd64/*
+          files: binman-linux-amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

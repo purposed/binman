@@ -6,8 +6,6 @@ use clap::Parser;
 
 use cli::{InstallCommand, ListCommand, UninstallCommand, UpdateCommand};
 
-use rood::cli::OutputManager;
-
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
@@ -23,13 +21,11 @@ struct Root {
 
 impl Root {
     pub async fn run(&self) -> Result<()> {
-        let cli = OutputManager::new(self.verbose);
-
         match &self.command {
-            Domain::List(cmd) => cmd.run(cli).await?,
-            Domain::Install(cmd) => cmd.run(cli).await?,
-            Domain::Update(cmd) => cmd.run(cli).await?,
-            Domain::Uninstall(cmd) => cmd.run(cli).await?,
+            Domain::List(cmd) => cmd.run().await?,
+            Domain::Install(cmd) => cmd.run().await?,
+            Domain::Update(cmd) => cmd.run().await?,
+            Domain::Uninstall(cmd) => cmd.run().await?,
         };
 
         Ok(())
@@ -56,8 +52,7 @@ enum Domain {
 }
 
 #[tokio::main]
-async fn main() {
-    if let Err(e) = Root::parse().run().await {
-        OutputManager::new(false).error(&e.to_string());
-    }
+async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+    return Root::parse().run().await;
 }

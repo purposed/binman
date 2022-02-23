@@ -1,33 +1,28 @@
 use anyhow::{anyhow, Result};
 
-use rood::cli::OutputManager;
-
 use crate::github::Client;
 use crate::{install::async_install, uninstall_target, Config, State, StateEntry};
 
-async fn async_update(
-    entry: &StateEntry,
-    install_location: &str,
-    output: &OutputManager,
-) -> Result<Option<StateEntry>> {
+async fn async_update(entry: &StateEntry, install_location: &str) -> Result<Option<StateEntry>> {
     let client = Client::new()?;
     let repo = client.get_repository(&entry.url)?;
     let latest = client.latest_release(&repo).await?;
 
     let latest_v = latest.version()?;
     if latest_v > entry.version {
-        output.progress(&format!("Upgrade available: {}@{}", entry.name, latest_v));
-        uninstall_target(&entry.name, output)?;
+        tracing::info!(target=%entry.name, version=%latest_v, "upgrade available");
+        uninstall_target(&entry.name)?;
         Ok(Some(
-            async_install(&entry.url, &latest_v.to_string(), install_location, output).await?,
+            async_install(&entry.url, &latest_v.to_string(), install_location).await?,
         ))
     } else {
-        output.success("Nothing to do!");
+        tracing::info!("nothing to do");
         Ok(None)
     }
 }
 
-pub async fn update_target(target: &str, output: &OutputManager) -> Result<()> {
+#[tracing::instrument]
+pub async fn update_target(target: &str) -> Result<()> {
     let cfg = Config::new()?;
 
     // Get existing entry.
@@ -40,7 +35,7 @@ pub async fn update_target(target: &str, output: &OutputManager) -> Result<()> {
             .ok_or_else(|| anyhow!("Binary [{}] is not installed", target))?;
     }
 
-    let possible_new_entry = async_update(&entry, &cfg.install_location, output).await?;
+    let possible_new_entry = async_update(&entry, &cfg.install_location).await?;
     {
         // Get write scope on state.
         let mut state = State::new(&cfg.state_file_path)?;

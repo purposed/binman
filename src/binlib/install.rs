@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{ensure, Context, Result};
 
-use rood::cli::OutputManager;
 use rood::sys::file::{self, ensure_exists};
 
 use sha2::{Digest, Sha256};
@@ -19,7 +18,8 @@ use super::zip;
 use super::{Config, State, StateEntry};
 use crate::github::{Asset, Client, Repository};
 
-async fn save_asset(asset: &Asset, install_location: &Path, output: OutputManager) -> Result<()> {
+#[tracing::instrument(skip(install_location))]
+async fn save_asset(asset: &Asset, install_location: &Path) -> Result<()> {
     let mut asset_dest_path = install_location.join(&format!(
         "{}-{}-{}",
         asset.name(),
@@ -29,23 +29,26 @@ async fn save_asset(asset: &Asset, install_location: &Path, output: OutputManage
     let extension = asset.extension();
     asset_dest_path.set_extension(extension);
 
-    output.debug(format!("asset download path: {:?}", &asset_dest_path));
-
     // Download the file
     let resp = reqwest::get(&asset.browser_download_url).await?;
     let bytes_buffer = resp.bytes().await?;
     let body: &[u8] = bytes_buffer.as_ref();
     let mut dest = File::create(&asset_dest_path)?;
     dest.write_all(body)?;
+    tracing::debug!(path=?asset_dest_path, "wrote asset");
 
     // Extract, if required.
     if let Some(compression) = zip::get_compression(extension) {
-        output.progress("Inflating compressed release");
-        zip::extract(&asset_dest_path, install_location, compression)?;
-        fs::remove_file(&asset_dest_path)?;
+        zip::extract(&asset_dest_path, install_location, compression)
+            .context("inflation failed")?;
+        tracing::debug!(compression=?compression, destination=?install_location, "inflated compressed asset");
+
+        fs::remove_file(&asset_dest_path).context("failed to remove compressed asset")?;
+        tracing::debug!(path=?asset_dest_path, "removed compressed asset");
     } else {
         // If no compression, we should have an executable.
         file::make_executable(&asset_dest_path)?;
+        tracing::debug!(asset=?asset_dest_path, "made asset executable");
     }
 
     Ok(())
@@ -88,7 +91,8 @@ fn do_checksum(src_dir: &Path, checksum_file_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> Result<Vec<String>> {
+#[tracing::instrument]
+fn move_assets(src_dir: &Path, dst_dir: &Path) -> Result<Vec<String>> {
     let mut final_assets = Vec::new();
     let wk = WalkDir::new(src_dir);
     for entry in wk.into_iter().filter_map(|e| e.ok()) {
@@ -98,14 +102,14 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> Result<
         if let Some(ext) = entry.path().extension() {
             match ext.to_str().unwrap() {
                 "sha256" => {
-                    output.progress(&format!(
-                        "Validating checksum: {}",
-                        entry.file_name().to_str().unwrap()
-                    ));
                     do_checksum(src_dir, entry.path())?;
+                    tracing::debug!(path=?src_dir, checksum=?entry.path(), "checksum ok");
                     continue;
                 }
-                "md5" => continue,
+                "md5" => {
+                    tracing::trace!("skipping MD5 checksum");
+                    continue;
+                }
                 _ => {}
             }
         }
@@ -117,10 +121,10 @@ fn move_assets(src_dir: &Path, dst_dir: &Path, output: OutputManager) -> Result<
         let dst_entry = dst_dir.join(&final_file_name);
 
         if file::is_executable(entry.path())? {
-            output.progress(&format!("Produced asset: {}", dst_entry.to_str().unwrap()));
             fs::copy(entry.path(), &dst_entry)?;
             file::make_executable(&dst_entry)?;
             final_assets.push(String::from(dst_entry.to_str().unwrap()));
+            tracing::debug!("produced asset {}", dst_entry.to_str().unwrap());
         }
     }
 
@@ -131,7 +135,6 @@ pub async fn async_install(
     repo_url: &str,
     version: &str,
     install_location: &str,
-    output: &OutputManager,
 ) -> Result<StateEntry> {
     // Ensure install directory exists.
     fs::create_dir_all(install_location)?;
@@ -141,7 +144,7 @@ pub async fn async_install(
 
     let client = Client::new()?;
     let repo = client.get_repository(repo_url)?;
-    output.step(&format!("Installing [{}]", &repo.name));
+    tracing::info!("starting install");
 
     let maybe_release = if version == "latest" {
         Some(client.latest_release(&repo).await?)
@@ -163,15 +166,13 @@ pub async fn async_install(
     ensure!(!assets.is_empty(), "No assets found for current platform");
 
     for asset in assets.iter() {
-        if assets.len() == 1
-            || output.prompt_yn(format!("Install asset {}", asset.full_name()), true)?
-        {
-            save_asset(asset, temp_dir.path(), output.push()).await?;
-        }
+        // TODO: Put back prompt here
+        save_asset(asset, temp_dir.path()).await?;
+        tracing::info!(asset=%asset.name(), "installed asset");
     }
 
-    let asset_paths = move_assets(temp_dir.path(), Path::new(install_location), output.push())?;
-    output.success("OK");
+    let asset_paths = move_assets(temp_dir.path(), Path::new(install_location))?;
+    tracing::info!("installation complete");
     Ok(StateEntry {
         name: repo.name.clone(),
         url: String::from(repo_url),
@@ -180,10 +181,10 @@ pub async fn async_install(
     })
 }
 
+#[tracing::instrument(skip(optional_dir_override))]
 pub async fn install_target(
     repo_url: &str,
     version: &str,
-    output: &OutputManager,
     optional_dir_override: Option<&String>,
 ) -> Result<()> {
     let cfg = Config::new()?;
@@ -192,7 +193,7 @@ pub async fn install_target(
     let mut used_url = String::from(repo_url);
 
     if !used_url.contains('/') {
-        output.debug("URL not recognized - using default code host");
+        tracing::warn!(default=%cfg.default_code_host, "URL not recognized - falling back on default code host");
         used_url = vec![cfg.default_code_host.clone(), String::from(repo_url)].join("/");
     }
 
@@ -210,7 +211,7 @@ pub async fn install_target(
         &cfg.install_location
     };
 
-    let new_entry = async_install(&used_url, version, install_dir, output).await?;
+    let new_entry = async_install(&used_url, version, install_dir).await?;
 
     // Insert installation in state.
     state.insert(new_entry)?;

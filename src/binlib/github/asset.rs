@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use regex::Regex;
 
 use rood::sys::{Architecture, Platform};
@@ -33,17 +35,19 @@ fn parse_platform(name: &str) -> Platform {
     Platform::Unknown
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Asset {
     name: String,
     pub browser_download_url: String,
 }
 
-impl Asset {
-    pub fn full_name(&self) -> &str {
-        &self.name
+impl Debug for Asset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.name)
     }
+}
 
+impl Asset {
     fn strip_extension(&self) -> &str {
         self.name.split('.').next().unwrap()
     }

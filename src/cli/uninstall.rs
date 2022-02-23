@@ -4,8 +4,6 @@ use binlib::uninstall_target;
 
 use clap::Parser;
 
-use rood::cli::OutputManager;
-
 #[derive(Parser)]
 pub struct UninstallCommand {
     /// The package(s) to uninstall.
@@ -13,11 +11,10 @@ pub struct UninstallCommand {
 }
 
 impl UninstallCommand {
-    pub async fn run(&self, output: OutputManager) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         for target in self.binary.iter() {
-            uninstall_target(target, &output)?;
+            uninstall_target(target)?;
         }
-        output.success("Uninstallation Successful");
         Ok(())
     }
 }

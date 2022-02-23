@@ -3,6 +3,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::{ensure, Result};
 
+#[derive(Clone, Copy, Debug)]
 pub enum CompressionType {
     Zip,
     Tarball,

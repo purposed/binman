@@ -4,8 +4,6 @@ use binlib::update_target;
 
 use clap::Parser;
 
-use rood::cli::OutputManager;
-
 #[derive(Parser)]
 pub struct UpdateCommand {
     /// The name of the package(s) to update.
@@ -13,12 +11,10 @@ pub struct UpdateCommand {
 }
 
 impl UpdateCommand {
-    pub async fn run(&self, output: OutputManager) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         for target in self.binary.iter() {
-            update_target(target, &output).await?;
+            update_target(target).await?;
         }
-
-        output.success("Update Complete");
 
         Ok(())
     }

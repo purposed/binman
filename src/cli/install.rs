@@ -4,8 +4,6 @@ use binlib::install_target;
 
 use clap::Parser;
 
-use rood::cli::OutputManager;
-
 #[derive(Parser)]
 pub struct InstallCommand {
     /// The repository URL.
@@ -22,16 +20,8 @@ pub struct InstallCommand {
 }
 
 impl InstallCommand {
-    pub async fn run(&self, output: OutputManager) -> Result<()> {
-        output.step("Installation");
-        install_target(
-            &self.repo_url,
-            &self.version,
-            &output.push(),
-            self.dir.as_ref(),
-        )
-        .await?;
-        output.success("Installation Successful");
+    pub async fn run(&self) -> Result<()> {
+        install_target(&self.repo_url, &self.version, self.dir.as_ref()).await?;
         Ok(())
     }
 }
