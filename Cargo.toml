@@ -17,7 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
-clap = {version = "3.2.17", features = ["derive"]}
+clap = {version = "4.0.4", features = ["derive"]}
 dirs = "4.0.0"
 http = "0.2.8"
 rood = "0.5.1"
