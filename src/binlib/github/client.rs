@@ -44,12 +44,15 @@ impl Client {
     }
 
     pub async fn latest_release(&self, repo: &Repository) -> Result<Release> {
-        let release_url = repo.latest_release_url();
+        let release_url = repo.releases_url();
 
         let resp = self.client.get(&release_url).send().await?;
         let release_json = resp.text().await?;
-        let release: Release = serde_json::from_str(&release_json)?;
-        Ok(release)
+        let release: Vec<Release> = serde_json::from_str(&release_json)?;
+
+        ensure!(!release.is_empty(), "No releases found");
+
+        Ok(release.into_iter().next().unwrap())
     }
 
     pub async fn get_releases(&self, repo: &Repository) -> Result<Vec<Release>> {

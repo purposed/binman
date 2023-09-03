@@ -3,7 +3,6 @@ use anyhow::{ensure, Result};
 use serde::Deserialize;
 
 static GITHUB_RELEASES_PATTERN: &str = "https://api.github.com/repos/{owner}/{name}/releases";
-static GITHUB_LATEST_RELEASE: &str = "https://api.github.com/repos/{owner}/{name}/releases/latest";
 
 #[derive(Debug, Deserialize)]
 pub struct Repository {
@@ -37,9 +36,5 @@ impl Repository {
 
     pub fn releases_url(&self) -> String {
         self.format_repo_url(GITHUB_RELEASES_PATTERN)
-    }
-
-    pub fn latest_release_url(&self) -> String {
-        self.format_repo_url(GITHUB_LATEST_RELEASE)
     }
 }

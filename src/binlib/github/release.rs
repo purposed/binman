@@ -1,8 +1,6 @@
-use anyhow::Result;
-
 use rood::sys::{Architecture, Platform};
 
-use semver::Version;
+use semver::{Prerelease, Version};
 
 use serde::Deserialize;
 
@@ -17,8 +15,12 @@ pub struct Release {
 }
 
 impl Release {
-    pub fn version(&self) -> Result<Version> {
-        parse_version_fuzzy(&self.tag_name)
+    pub fn version(&self) -> Version {
+        parse_version_fuzzy(&self.tag_name).unwrap_or_else(|_| {
+            let mut v = Version::new(0, 0, 0);
+            v.pre = Prerelease::new(&self.tag_name).unwrap();
+            v
+        })
     }
 
     pub fn platform_assets(&self) -> Vec<&Asset> {
