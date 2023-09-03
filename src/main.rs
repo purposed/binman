@@ -53,6 +53,18 @@ enum Domain {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    let cli = Root::parse();
+
+    if cli.verbose {
+        // Init subscriber with debug level
+        tracing_subscriber::fmt()
+            .with_env_filter("binlib=debug,binman=debug")
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_env_filter("binlib=info,binman=info")
+            .init();
+    }
+
     return Root::parse().run().await;
 }

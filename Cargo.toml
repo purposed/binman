@@ -31,5 +31,5 @@ shellexpand = "2.1.2"
 tempfile = "3.3.0"
 tokio = { version = "1.6", features = ["full"] }
 tracing = "0.1.37"
-tracing-subscriber = "0.3.16"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 walkdir = "2"

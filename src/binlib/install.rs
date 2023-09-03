@@ -153,7 +153,7 @@ pub async fn async_install(
         let semv = parse_version_fuzzy(version)?;
         releases
             .iter()
-            .find(|release| release.version().is_ok() && release.version().unwrap() == semv)
+            .find(|release| release.version() == semv)
             .cloned()
     };
 
@@ -176,7 +176,7 @@ pub async fn async_install(
     Ok(StateEntry {
         name: repo.name.clone(),
         url: String::from(repo_url),
-        version: release.version()?,
+        version: release.version(),
         artifacts: asset_paths,
     })
 }
